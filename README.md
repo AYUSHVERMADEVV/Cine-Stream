@@ -1,49 +1,41 @@
 # 🎬 Cine-Stream
 
-Cine-Stream is a Netflix-style movie discovery web application built with React and Vite. It allows users to discover popular movies, search for movies, continuously browse results, save favorites, and get AI-powered movie recommendations based on their mood.
-
-## 🚀 Live Demo
-
-🔗 Live Demo: [live url](https://cine-stream-two-alpha.vercel.app/)
-
-## 📂 GitHub Repository
-
-🔗 GitHub: https://github.com/KumkumPatel07/Cine-Stream
-
----
+Cine-Stream is a Netflix-style movie discovery application built with Next.js and React. It allows users to discover popular movies, search for movies, view movie details, and save their favorite movies.
 
 ## ✨ Features
 
-### 🎥 Movie Discovery
+- 🎬 Browse popular movies using the TMDB API
+- 🔎 Search for movies
+- 🎥 View detailed movie information
+- ❤️ Save and manage favorite movies
+- 💾 Persist favorites using browser localStorage
+- 🖼️ Display movie posters from TMDB
+- 📱 Responsive movie browsing interface
+- ⚡ Next.js App Router
+- 🚀 Production build and server rendering
+- 🔄 API response caching and revalidation
 
-- Fetches popular movies from TMDB.
-- Displays movie posters, titles, release years, and ratings.
-- Responsive movie grid layout.
-- Handles movies without available posters.
+## 🛠️ Tech Stack
 
-### 🔎 Movie Search
+- Next.js 15
+- React 19
+- Redux Toolkit
+- React Redux
+- Tailwind CSS
+- TypeScript
+- TMDB REST API
+- Undici
 
-- Search movies using the TMDB API.
-- Search requests use a 500ms debounce to avoid unnecessary API calls.
-- Search results are dynamically displayed.
+## 📁 Project Structure
 
-### ♾️ Infinite Scroll
-
-- Uses the IntersectionObserver API.
-- Automatically loads the next page when the user reaches the bottom.
-- Prevents duplicate movies from being added.
-- Continues loading until all available TMDB pages are reached.
-
-### ❤️ Favorites
-
-- Add or remove movies using the favorite button.
-- Favorites are stored in browser localStorage.
-- Favorites remain available after refreshing the page.
-- Dedicated `/favorites` route for saved movies.
-
-### 🖼️ Lazy Loading
-
-Movie posters use native browser lazy loading:
-
-```html
-loading="lazy"
+```text
+cine-stream-next/
+├── app/                 # Next.js App Router pages
+├── components/          # Reusable UI components
+├── lib/
+│   └── tmdb.js          # TMDB API utilities
+├── public/              # Static assets
+├── .env.local           # Local environment variables
+├── next.config.mjs      # Next.js configuration
+├── package.json
+└── README.md
