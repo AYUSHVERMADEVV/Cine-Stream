@@ -74,6 +74,60 @@ router.post("/", async (req, res) => {
   }
 });
 
+// UPDATE an existing post
+router.put("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, content, imageUrl, imagePublicId } = req.body;
+
+    // Validate post ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        message: "Invalid post ID",
+      });
+    }
+
+    // Validate required fields
+    if (!title?.trim() || !content?.trim()) {
+      return res.status(400).json({
+        message: "Title and content are required",
+      });
+    }
+
+    const updatedPost = await Post.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          title: title.trim(),
+          content: content.trim(),
+          ...(imageUrl !== undefined && { imageUrl }),
+          ...(imagePublicId !== undefined && { imagePublicId }),
+        },
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    if (!updatedPost) {
+      return res.status(404).json({
+        message: "Post not found",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Post updated successfully",
+      post: updatedPost,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Failed to update post",
+      error: error.message,
+    });
+  }
+});
+
 // DELETE a post
 router.delete("/:id", async (req, res) => {
   try {

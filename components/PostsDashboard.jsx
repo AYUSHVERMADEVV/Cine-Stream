@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
@@ -12,14 +13,17 @@ export default function PostsDashboard() {
   const [posts, setPosts] = useState([]);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-const [imageFile, setImageFile] = useState(null);
+  const [editingPostId, setEditingPostId] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
   const [authorId, setAuthorId] = useState(DEFAULT_AUTHOR_ID);
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
+  // Fetch all posts
   const fetchPosts = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -33,12 +37,12 @@ const [imageFile, setImageFile] = useState(null);
       }
 
       setPosts(
-  Array.isArray(data)
-    ? data
-    : Array.isArray(data.posts)
-      ? data.posts
-      : []
-);
+        Array.isArray(data)
+          ? data
+          : Array.isArray(data.posts)
+            ? data.posts
+            : []
+      );
     } catch (err) {
       setError(
         err.message === "Failed to fetch"
@@ -51,74 +55,116 @@ const [imageFile, setImageFile] = useState(null);
   }, []);
 
   useEffect(() => {
-    fetchPosts();
-  }, [fetchPosts]);
+  const loadPosts = async () => {
+    await fetchPosts();
+  };
 
+  loadPosts();
+}, [fetchPosts]);
+
+  // Create a new post or update an existing post
   async function handleSubmit(event) {
     event.preventDefault();
     setError("");
     setMessage("");
 
-    if (!title.trim() || !content.trim() || !authorId.trim()) {
-      setError("Title, content aur author ID teeno required hain.");
+    if (!title.trim() || !content.trim()) {
+      setError("Title aur content dono required hain.");
+      return;
+    }
+
+    if (!editingPostId && !authorId.trim()) {
+      setError("Author ID required hai.");
       return;
     }
 
     setSubmitting(true);
 
     try {
-     let imageUrl = "";
-let imagePublicId = "";
+      let imageUrl;
+      let imagePublicId;
 
-if (imageFile) {
-const formData = new FormData();
-formData.append("image", imageFile);
+      // Upload a newly selected image
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append("image", imageFile);
 
-const uploadResponse = await fetch(`${API_URL}/upload`, {
-method: "POST",
-body: formData,
-});
+        const uploadResponse = await fetch(`${API_URL}/upload`, {
+          method: "POST",
+          body: formData,
+        });
 
-const uploadData = await uploadResponse.json();
+        const uploadData = await uploadResponse.json();
 
-if (!uploadResponse.ok) {
-throw new Error(uploadData.message || "Image upload nahi ho paayi.");
-}
+        if (!uploadResponse.ok) {
+          throw new Error(
+            uploadData.message || "Image upload nahi ho paayi."
+          );
+        }
 
-imageUrl = uploadData.imageUrl;
-imagePublicId = uploadData.publicId;
-}
+        imageUrl = uploadData.imageUrl;
+        imagePublicId = uploadData.publicId;
+      }
 
-const response = await fetch(`${API_URL}/posts`, {
-method: "POST",
-headers: {
-"Content-Type": "application/json",
-},
-body: JSON.stringify({
-title: title.trim(),
-content: content.trim(),
-authorId: authorId.trim(),
-imageUrl,
-imagePublicId,
-}),
-});
+      const isEditing = Boolean(editingPostId);
 
-const data = await response.json();
+      const requestBody = {
+        title: title.trim(),
+        content: content.trim(),
+      };
 
+      if (isEditing) {
+        // Include image fields only when a new image was uploaded.
+        if (imageUrl !== undefined) {
+          requestBody.imageUrl = imageUrl;
+          requestBody.imagePublicId = imagePublicId;
+        }
+      } else {
+        requestBody.authorId = authorId.trim();
+        requestBody.imageUrl = imageUrl || "";
+        requestBody.imagePublicId = imagePublicId || "";
+      }
+
+      const response = await fetch(
+        isEditing
+          ? `${API_URL}/posts/${editingPostId}`
+          : `${API_URL}/posts`,
+        {
+          method: isEditing ? "PUT" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
+        }
+      );
+
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Post create nahi ho paayi.");
+        throw new Error(
+          data.message ||
+            (isEditing
+              ? "Post update nahi ho paayi."
+              : "Post create nahi ho paayi.")
+        );
       }
 
       setTitle("");
       setContent("");
       setImageFile(null);
-      setMessage("Post successfully create ho gayi!");
+      setEditingPostId(null);
+
+      setMessage(
+        isEditing
+          ? "Post successfully update ho gayi!"
+          : "Post successfully create ho gayi!"
+      );
+
       await fetchPosts();
     } catch (err) {
       setError(
         err.message === "Failed to fetch"
-          ? "Backend se connection nahi ho raha."
+          ? "Backend se connection nahi ho raha. Backend server check karo."
           : err.message
       );
     } finally {
@@ -126,6 +172,32 @@ const data = await response.json();
     }
   }
 
+  // Load an existing post into the form
+  function handleEdit(post) {
+    setEditingPostId(post._id);
+    setTitle(post.title);
+    setContent(post.content);
+    setImageFile(null);
+    setError("");
+    setMessage("");
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
+  // Cancel editing
+  function handleCancelEdit() {
+    setEditingPostId(null);
+    setTitle("");
+    setContent("");
+    setImageFile(null);
+    setError("");
+    setMessage("");
+  }
+
+  // Delete a post
   async function handleDelete(postId) {
     const confirmed = window.confirm(
       "Kya tum sach mein ye post delete karna chahti ho?"
@@ -151,6 +223,10 @@ const data = await response.json();
       setPosts((currentPosts) =>
         currentPosts.filter((post) => post._id !== postId)
       );
+
+      if (editingPostId === postId) {
+        handleCancelEdit();
+      }
 
       setMessage("Post successfully delete ho gayi!");
     } catch (err) {
@@ -183,6 +259,7 @@ const data = await response.json();
         </p>
       </header>
 
+      {/* Create / Update form */}
       <section
         style={{
           padding: "24px",
@@ -191,7 +268,9 @@ const data = await response.json();
           marginBottom: "32px",
         }}
       >
-        <h2 style={{ marginTop: 0 }}>Create a Post</h2>
+        <h2 style={{ marginTop: 0 }}>
+          {editingPostId ? "Edit Post" : "Create a Post"}
+        </h2>
 
         <form onSubmit={handleSubmit}>
           <label htmlFor="post-title">Title</label>
@@ -217,36 +296,76 @@ const data = await response.json();
             rows={4}
             style={{ ...inputStyle, resize: "vertical" }}
           />
-           
-          <label htmlFor="post-image">Upload Image (Optional)</label>
 
-<input
-id="post-image"
-type="file"
-accept="image/*"
-onChange={(event) =>
-setImageFile(event.target.files?.[0] || null)
-}
-style={inputStyle}
-/>
-
-          <label htmlFor="post-author">Author ID</label>
+          <label htmlFor="post-image">
+            Upload Image (Optional)
+          </label>
 
           <input
-            id="post-author"
-            value={authorId}
-            onChange={(event) => setAuthorId(event.target.value)}
-            required
+            id="post-image"
+            type="file"
+            accept="image/*"
+            onChange={(event) =>
+              setImageFile(event.target.files?.[0] || null)
+            }
             style={inputStyle}
           />
 
-          <button
-            type="submit"
-            disabled={submitting}
-            style={buttonStyle}
+          {editingPostId && (
+            <p style={{ fontSize: "0.9rem", opacity: 0.75 }}>
+              Nayi image select nahi karogi toh existing image preserve rahegi.
+            </p>
+          )}
+
+          {!editingPostId && (
+            <>
+              <label htmlFor="post-author">Author ID</label>
+
+              <input
+                id="post-author"
+                value={authorId}
+                onChange={(event) => setAuthorId(event.target.value)}
+                required
+                style={inputStyle}
+              />
+            </>
+          )}
+
+          <div
+            style={{
+              display: "flex",
+              gap: "12px",
+              flexWrap: "wrap",
+            }}
           >
-            {submitting ? "Creating..." : "Create Post"}
-          </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              style={buttonStyle}
+            >
+              {submitting
+                ? editingPostId
+                  ? "Updating..."
+                  : "Creating..."
+                : editingPostId
+                  ? "Update Post"
+                  : "Create Post"}
+            </button>
+
+            {editingPostId && (
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                disabled={submitting}
+                style={{
+                  ...buttonStyle,
+                  background: "#666",
+                }}
+              >
+                Cancel Edit
+              </button>
+            )}
+          </div>
         </form>
       </section>
 
@@ -299,39 +418,60 @@ style={inputStyle}
                 overflowWrap: "anywhere",
               }}
             >
-              <h3 style={{ marginTop: 0 }}>{post.title}</h3>  
-             
-              {post.imageUrl && (
-<img
-src={post.imageUrl}
-alt={post.title}
-loading="lazy"
-style={{
-display: "block",
-width: "100%",
-maxWidth: "600px",
-maxHeight: "400px",
-objectFit: "contain",
-borderRadius: "10px",
-marginBottom: "16px",
-}}
-/>
-)}
+              <h3 style={{ marginTop: 0 }}>{post.title}</h3>
 
+              {post.imageUrl && (
+                <img
+                  src={post.imageUrl}
+                  alt={post.title}
+                  loading="lazy"
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    maxWidth: "600px",
+                    maxHeight: "400px",
+                    objectFit: "contain",
+                    borderRadius: "10px",
+                    marginBottom: "16px",
+                  }}
+                />
+              )}
 
               <p style={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}>
                 {post.content}
               </p>
 
+              {post.authorId?.name && (
+                <p style={{ opacity: 0.75 }}>
+                  Author: {post.authorId.name}
+                </p>
+              )}
+
               <small style={{ opacity: 0.7 }}>
                 Post ID: {post._id}
               </small>
 
-              <div style={{ marginTop: "16px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "12px",
+                  flexWrap: "wrap",
+                  marginTop: "16px",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => handleEdit(post)}
+                  disabled={submitting || deletingId === post._id}
+                  style={buttonStyle}
+                >
+                  Edit Post
+                </button>
+
                 <button
                   type="button"
                   onClick={() => handleDelete(post._id)}
-                  disabled={deletingId === post._id}
+                  disabled={deletingId === post._id || submitting}
                   style={{
                     ...buttonStyle,
                     background: "#c0392b",
@@ -371,3 +511,4 @@ const buttonStyle = {
   cursor: "pointer",
   fontWeight: 600,
 };
+
