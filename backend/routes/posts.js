@@ -5,12 +5,17 @@ const User = require("../models/User");
 
 const router = express.Router();
 
-// GET all posts
+// GET all posts with author details
 router.get("/", async (req, res) => {
   try {
-    const posts = await Post.find().sort({ createdAt: -1 });
+    const posts = await Post.find()
+      .populate("authorId", "name email")
+      .sort({ createdAt: -1 });
 
-    res.status(200).json(posts);
+    res.status(200).json({
+      count: posts.length,
+      posts,
+    });
   } catch (error) {
     res.status(500).json({
       message: "Failed to fetch posts",
@@ -18,11 +23,10 @@ router.get("/", async (req, res) => {
     });
   }
 });
-
 // CREATE a new post
 router.post("/", async (req, res) => {
   try {
-    const { title, content, authorId } = req.body;
+   const { title, content, authorId, imageUrl, imagePublicId } = req.body;
 
     // Validate required fields
     if (!title || !content || !authorId) {
@@ -48,11 +52,13 @@ router.post("/", async (req, res) => {
     }
 
     // Create the post with authorId
-    const newPost = new Post({
-      title,
-      content,
-      authorId,
-    });
+   const newPost = new Post({
+  title,
+  content,
+  authorId,
+  imageUrl: imageUrl || "",
+  imagePublicId: imagePublicId || "",
+});
 
     const savedPost = await newPost.save();
 
