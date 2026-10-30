@@ -1,3 +1,4 @@
+import Navbar from "../../components/Navbar";
 import PostsDashboard from "../../components/PostsDashboard";
 
 export const metadata = {
@@ -7,8 +8,11 @@ export const metadata = {
 
 export default function PostsPage() {
   return (
-    <main className="posts-page">
-      <PostsDashboard />
-    </main>
+    <>
+      <Navbar />
+      <main className="posts-page">
+        <PostsDashboard />
+      </main>
+    </>
   );
 }

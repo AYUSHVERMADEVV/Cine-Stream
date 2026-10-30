@@ -1,0 +1,6 @@
+{
+  "name": "Cine-Stream",
+  "description": "Discover popular movies, explore movie details, search films, and manage favorites.",
+  "permissions": [],
+  "capabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

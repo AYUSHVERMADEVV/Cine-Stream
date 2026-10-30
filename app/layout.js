@@ -13,13 +13,17 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: "Cine-Stream",
-  description: "Discover and explore movies with Cine-Stream.",
+  description: "Discover popular movies, explore movie details, search films, and manage favorites.",
+  openGraph: {
+    title: "Cine-Stream",
+    description: "Discover popular movies, explore movie details, search films, and manage favorites.",
+  },
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
         {children}
       </body>
     </html>

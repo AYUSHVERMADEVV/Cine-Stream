@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-outputFileTracingRoot: process.cwd(),
+  output: "standalone",
+  outputFileTracingRoot: process.cwd(),
 
 images: {
 remotePatterns: [

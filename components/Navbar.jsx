@@ -15,6 +15,7 @@ export default function Navbar() {
       <div className="nav-links">
         <Link href="/">Home</Link>
         <Link href="/favorites">Favorites</Link>
+        <Link href="/posts">Community Posts</Link>
       </div>
     </nav>
   );

@@ -1,53 +1,74 @@
-﻿"use client";
+"use client";
 
-import { useState } from "react";
+import { useSyncExternalStore } from "react";
+
+function subscribe(callback) {
+  window.addEventListener("storage", callback);
+  window.addEventListener("favorites-updated", callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener("favorites-updated", callback);
+  };
+}
+
+function getFavoritesSnapshot() {
+  try {
+    return localStorage.getItem("cine-stream-favorites") || "[]";
+  } catch {
+    return "[]";
+  }
+}
+
+function getServerSnapshot() {
+  return "[]";
+}
 
 export default function FavoriteButton({ movie }) {
-  const [favorite, setFavorite] = useState(() => {
-    if (typeof window === "undefined" || !movie) {
-      return false;
-    }
+  const favoritesJson = useSyncExternalStore(
+    subscribe,
+    getFavoritesSnapshot,
+    getServerSnapshot
+  );
 
-    const savedFavorites =
-      JSON.parse(localStorage.getItem("cine-stream-favorites")) || [];
+  let favorites = [];
+  try {
+    favorites = JSON.parse(favoritesJson);
+  } catch {
+    favorites = [];
+  }
 
-    return savedFavorites.some((item) => item.id === movie.id);
-  });
+  const isFavorite = Boolean(
+    movie && favorites.some((item) => item.id === movie.id)
+  );
 
   function handleFavorite() {
     if (!movie) return;
 
-    const savedFavorites =
-      JSON.parse(localStorage.getItem("cine-stream-favorites")) || [];
-
-    if (favorite) {
-      const updatedFavorites = savedFavorites.filter(
-        (item) => item.id !== movie.id
-      );
-
-      localStorage.setItem(
-        "cine-stream-favorites",
-        JSON.stringify(updatedFavorites)
-      );
-
-      setFavorite(false);
-    } else {
-      const updatedFavorites = [
-        ...savedFavorites,
-        {
-          id: movie.id,
-          title: movie.title,
-          poster_path: movie.poster_path,
-          vote_average: movie.vote_average,
-        },
-      ];
+    try {
+      let updatedFavorites = [];
+      if (isFavorite) {
+        updatedFavorites = favorites.filter((item) => item.id !== movie.id);
+      } else {
+        updatedFavorites = [
+          ...favorites,
+          {
+            id: movie.id,
+            title: movie.title,
+            poster_path: movie.poster_path,
+            vote_average: movie.vote_average,
+          },
+        ];
+      }
 
       localStorage.setItem(
         "cine-stream-favorites",
         JSON.stringify(updatedFavorites)
       );
 
-      setFavorite(true);
+      // Notify external store subscribers on the same window
+      window.dispatchEvent(new Event("favorites-updated"));
+    } catch {
+      // Storage fallback
     }
   }
 
@@ -56,8 +77,9 @@ export default function FavoriteButton({ movie }) {
       type="button"
       onClick={handleFavorite}
       className="favorite-button"
+      suppressHydrationWarning
     >
-      {favorite ? "Favorited" : "Add to Favorites"}
+      {isFavorite ? "Favorited" : "Add to Favorites"}
     </button>
   );
 }

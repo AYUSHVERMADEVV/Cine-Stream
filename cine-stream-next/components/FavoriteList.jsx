@@ -1,19 +1,43 @@
 "use client";
 
-import { useState } from "react";
+import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import MovieCard from "./MovieCard";
 
-export default function FavoriteList() {
-  const [favorites] = useState(() => {
-    if (typeof window === "undefined") {
-      return [];
-    }
+function subscribe(callback) {
+  window.addEventListener("storage", callback);
+  window.addEventListener("favorites-updated", callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener("favorites-updated", callback);
+  };
+}
 
-    return (
-      JSON.parse(localStorage.getItem("cine-stream-favorites")) || []
-    );
-  });
+function getFavoritesSnapshot() {
+  try {
+    return localStorage.getItem("cine-stream-favorites") || "[]";
+  } catch {
+    return "[]";
+  }
+}
+
+function getServerSnapshot() {
+  return "[]";
+}
+
+export default function FavoriteList() {
+  const favoritesJson = useSyncExternalStore(
+    subscribe,
+    getFavoritesSnapshot,
+    getServerSnapshot
+  );
+
+  let favorites = [];
+  try {
+    favorites = JSON.parse(favoritesJson);
+  } catch {
+    favorites = [];
+  }
 
   if (favorites.length === 0) {
     return (
